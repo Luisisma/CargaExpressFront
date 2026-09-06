@@ -1,10 +1,29 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function Verificacion2FA() {
-  const [token, setToken] = useState('123456');
+  const [token, setToken] = useState('');
+  const [curvePath, setCurvePath] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const width = 320;
+    const height = 1000;
+    const baseX = 235;
+    const amplitude = 62;
+    const steps = 140;
+    let path = `M ${width} 0 L ${baseX} 0 `;
+
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const y = t * height;
+      const x = baseX - amplitude * Math.sin(Math.PI * t);
+      path += `L ${x.toFixed(2)} ${y.toFixed(2)} `;
+    }
+
+    path += `L ${width} ${height} Z`;
+    setCurvePath(path);
+  }, []);
 
   const handleVerify = (e) => {
     e.preventDefault();
@@ -12,40 +31,99 @@ export default function Verificacion2FA() {
   };
 
   return (
-    <div className="d-flex align-items-center justify-content-center min-vh-100 bg-light py-5">
-      <div className="card border-0 shadow rounded-4 p-4 p-md-5 bg-white text-center" style={{ maxWidth: '440px', width: '100%' }}>
-        <div className="bg-brand-primary text-white p-3 rounded-circle d-inline-flex mb-3 mx-auto">
-          <ShieldCheck size={36} />
+    <main className="login-shell">
+      {/* Columna Izquierda: Portada fotográfica */}
+      <section className="cover-panel" aria-label="Portada CargaExpress">
+        <img src="/portada.jpg" alt="Equipo CargaExpress en almacén" />
+        <div className="cover-copy">
+          <div>
+            <h1>
+              Bienvenido a
+              <br />
+              <span>CargaExpress Peru</span>
+            </h1>
+            <p>Gestiona encomiendas, agencias, caja y entregas desde un solo sistema operativo.</p>
+          </div>
         </div>
-        <h3 className="fw-bold text-dark">Doble Factor (2FA)</h3>
-        <p className="text-secondary small">Ingresa el código temporal TOTP de 6 dígitos generado en tu aplicación autenticadora.</p>
+      </section>
 
-        <form onSubmit={handleVerify}>
-          <div className="mb-4">
-            <input
-              type="text"
-              maxLength={6}
-              required
-              className="form-control form-control-lg text-center fw-bold fs-3 tracking-widest"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-            />
+      {/* Columna Derecha: Verificación 2FA */}
+      <section className="form-panel">
+        <div className="curved-divider">
+          <svg width="100%" height="100%" viewBox="0 0 320 1000" preserveAspectRatio="none" aria-hidden="true">
+            <path d={curvePath} fill="#f5f5f7" />
+          </svg>
+        </div>
+
+        <div className="form-content">
+          <div className="mobile-cover">
+            <img src="/portada.jpg" alt="Equipo CargaExpress en almacén" />
+            <div className="mobile-copy">
+              <h1>
+                Bienvenido a
+                <br />
+                <span>CargaExpress Peru</span>
+              </h1>
+            </div>
           </div>
 
-          <button type="submit" className="btn btn-brand w-100 py-2 rounded-3 fw-bold mb-3">
-            Acceder al Panel
-          </button>
+          <div className="brand-pill">
+            <i className="bi bi-shield-check"></i>
+            <span>Seguridad de acceso</span>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => navigate('/auth/login')}
-            className="btn btn-link text-secondary text-decoration-none small d-inline-flex align-items-center gap-1"
-          >
-            <ArrowLeft size={16} />
-            <span>Volver a ingresar credenciales</span>
-          </button>
-        </form>
-      </div>
-    </div>
+          <h2 className="form-title">Verificación 2FA</h2>
+          <p className="form-subtitle">Ingresa el código de 6 dígitos de tu aplicación autenticadora</p>
+
+          {/* Indicador de progreso paso 2 de 2 */}
+          <div className="step-indicator" aria-label="Progreso de autenticación">
+            <div className="step-dot done">
+              <i className="bi bi-check fs-5"></i>
+            </div>
+            <div className="step-line done"></div>
+            <div className="step-dot active">2</div>
+          </div>
+
+          <form className="login-form" onSubmit={handleVerify}>
+            <div className="mb-4">
+              <label className="form-label-auth text-center d-block" htmlFor="tokenInput">Código de 6 dígitos</label>
+              <input
+                id="tokenInput"
+                type="text"
+                maxLength={6}
+                required
+                autoFocus
+                inputMode="numeric"
+                pattern="\d{6}"
+                placeholder="000000"
+                className="form-control-auth text-center fw-bold fs-3"
+                style={{ letterSpacing: '8px' }}
+                value={token}
+                onChange={(e) => setToken(e.target.value.replace(/\D/g, ''))}
+              />
+            </div>
+
+            <button type="submit" className="btn-login">
+              <i className="bi bi-shield-lock"></i>
+              <span>Verificar y acceder</span>
+            </button>
+          </form>
+
+          <div className="text-center mt-4">
+            <Link to="/auth/login" className="helper-link">
+              <i className="bi bi-arrow-left"></i>
+              <span>Volver a credenciales</span>
+            </Link>
+          </div>
+
+          <div className="public-link">
+            <Link to="/">
+              <i className="bi bi-globe me-1"></i>
+              Ver sitio público
+            </Link>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }
