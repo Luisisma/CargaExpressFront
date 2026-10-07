@@ -7,8 +7,14 @@ export default function Login() {
   const [password, setPassword] = useState('password123');
   const [showPass, setShowPass] = useState(false);
   const [curvePath, setCurvePath] = useState('');
-  const { login } = useAuth();
+  const { login, loading, authError, clearError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/admin/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   // Generador de la curva sinusoidal idéntica al monolito
   useEffect(() => {
@@ -30,10 +36,19 @@ export default function Login() {
     setCurvePath(path);
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    login(dni, password);
-    navigate('/auth/2fa');
+    clearError();
+    try {
+      const result = await login(dni, password);
+      if (result.mfa_requerido) {
+        navigate('/auth/2fa');
+      } else {
+        navigate('/admin/dashboard');
+      }
+    } catch (err) {
+      // El error se gestiona en authError del contexto
+    }
   };
 
   return (
@@ -91,6 +106,13 @@ export default function Login() {
             <div className="step-dot pending">2</div>
           </div>
 
+          {authError && (
+            <div className="alert alert-danger py-2 px-3 small d-flex align-items-center mb-3" role="alert">
+              <i className="bi bi-exclamation-triangle-fill me-2 fs-6"></i>
+              <div>{authError}</div>
+            </div>
+          )}
+
           <form className="login-form" onSubmit={handleSubmit}>
             <div className="mb-4">
               <label className="form-label-auth" htmlFor="dniInput">DNI</label>
@@ -105,7 +127,11 @@ export default function Login() {
                   placeholder="Ingresa tu DNI"
                   className="form-control-auth"
                   value={dni}
-                  onChange={(e) => setDni(e.target.value)}
+                  disabled={loading}
+                  onChange={(e) => {
+                    setDni(e.target.value);
+                    if (authError) clearError();
+                  }}
                 />
               </div>
             </div>
@@ -121,7 +147,11 @@ export default function Login() {
                   placeholder="Tu contraseña"
                   className="form-control-auth"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (authError) clearError();
+                  }}
                 />
                 <button
                   type="button"
@@ -134,9 +164,18 @@ export default function Login() {
               </div>
             </div>
 
-            <button type="submit" className="btn-login">
-              <i className="bi bi-arrow-right-circle"></i>
-              <span>Continuar</span>
+            <button type="submit" className="btn-login" disabled={loading}>
+              {loading ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  <span>Verificando...</span>
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-arrow-right-circle"></i>
+                  <span>Continuar</span>
+                </>
+              )}
             </button>
           </form>
 

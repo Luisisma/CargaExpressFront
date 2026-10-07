@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Verificacion2FA() {
   const [token, setToken] = useState('');
   const [curvePath, setCurvePath] = useState('');
+  const [mostrarQr, setMostrarQr] = useState(true);
+  const { verify2FA, loading, authError, clearError, tempToken, isAuthenticated, qrCode, secretManual } = useAuth();
   const navigate = useNavigate();
+
+  // Si ya está autenticado, ir directo al dashboard. Si no hay token temporal, volver al login
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/admin/dashboard', { replace: true });
+    } else if (!tempToken) {
+      navigate('/auth/login', { replace: true });
+    }
+  }, [tempToken, isAuthenticated, navigate]);
 
   useEffect(() => {
     const width = 320;
@@ -25,9 +37,15 @@ export default function Verificacion2FA() {
     setCurvePath(path);
   }, []);
 
-  const handleVerify = (e) => {
+  const handleVerify = async (e) => {
     e.preventDefault();
-    navigate('/admin/dashboard');
+    clearError();
+    try {
+      await verify2FA(token);
+      navigate('/admin/dashboard');
+    } catch (err) {
+      // Error se expone en authError
+    }
   };
 
   return (
@@ -84,6 +102,55 @@ export default function Verificacion2FA() {
             <div className="step-dot active">2</div>
           </div>
 
+          {authError && (
+            <div className="alert alert-danger py-2 px-3 small d-flex align-items-center mb-3" role="alert">
+              <i className="bi bi-exclamation-triangle-fill me-2 fs-6"></i>
+              <div>{authError}</div>
+            </div>
+          )}
+
+          {qrCode && (
+            <div className="card border-0 shadow-sm rounded-4 p-3 mb-3 bg-white text-center">
+              <div className="d-flex align-items-center justify-content-between mb-1">
+                <span className="small fw-bold text-dark d-flex align-items-center gap-1">
+                  <i className="bi bi-qr-code text-primary fs-5"></i>
+                  Sincronizar Celular
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-link text-decoration-none p-0 text-muted"
+                  style={{ fontSize: '12px' }}
+                  onClick={() => setMostrarQr(!mostrarQr)}
+                >
+                  {mostrarQr ? 'Ocultar QR' : 'Mostrar QR'}
+                </button>
+              </div>
+
+              {mostrarQr && (
+                <div className="py-2">
+                  <div className="d-inline-block p-2 bg-light border rounded-3 mb-2 shadow-sm">
+                    <img
+                      src={qrCode}
+                      alt="Código QR de Verificación 2FA"
+                      style={{ width: '145px', height: '145px', display: 'block' }}
+                    />
+                  </div>
+                  <p className="text-secondary small mb-1" style={{ fontSize: '11px' }}>
+                    Escanea con <strong>Google Authenticator</strong> o <strong>Authy</strong>
+                  </p>
+                  {secretManual && (
+                    <div className="mt-1">
+                      <span className="text-muted" style={{ fontSize: '10px' }}>Clave manual: </span>
+                      <code className="user-select-all px-2 py-0 bg-light rounded text-dark fw-bold" style={{ fontSize: '11px' }}>
+                        {secretManual}
+                      </code>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <form className="login-form" onSubmit={handleVerify}>
             <div className="mb-4">
               <label className="form-label-auth text-center d-block" htmlFor="tokenInput">Código de 6 dígitos</label>
@@ -99,13 +166,26 @@ export default function Verificacion2FA() {
                 className="form-control-auth text-center fw-bold fs-3"
                 style={{ letterSpacing: '8px' }}
                 value={token}
-                onChange={(e) => setToken(e.target.value.replace(/\D/g, ''))}
+                disabled={loading}
+                onChange={(e) => {
+                  setToken(e.target.value.replace(/\D/g, ''));
+                  if (authError) clearError();
+                }}
               />
             </div>
 
-            <button type="submit" className="btn-login">
-              <i className="bi bi-shield-lock"></i>
-              <span>Verificar y acceder</span>
+            <button type="submit" className="btn-login" disabled={loading || token.length !== 6}>
+              {loading ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  <span>Verificando...</span>
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-shield-lock"></i>
+                  <span>Verificar y acceder</span>
+                </>
+              )}
             </button>
           </form>
 

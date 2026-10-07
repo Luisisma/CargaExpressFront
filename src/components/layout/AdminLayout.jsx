@@ -4,12 +4,19 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, logout, switchRole } = useAuth();
+  const { user, isAuthenticated, logout, switchRole } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  // Si no está autenticado, redirigir a login
+  React.useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/auth/login', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleLogout = async () => {
+    await logout();
     navigate('/auth/login');
   };
 
@@ -92,12 +99,14 @@ export default function AdminLayout() {
             className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
             style={{ width: '34px', height: '34px', background: '#2b6cb0', fontSize: '12px' }}
           >
-            AC
+            {user?.nombres ? `${user.nombres[0]}${user.apellidos ? user.apellidos[0] : ''}`.toUpperCase() : 'CE'}
           </div>
           <div className="user-info text-truncate">
-            <div className="user-name text-white fw-bold small text-truncate">{user?.nombre || 'Administrador'}</div>
+            <div className="user-name text-white fw-bold small text-truncate">
+              {user?.nombre_completo || user?.nombre || `${user?.nombres || ''} ${user?.apellidos || ''}`.trim() || 'Usuario'}
+            </div>
             <div className="user-role text-white-50 text-uppercase" style={{ fontSize: '10px', letterSpacing: '0.5px' }}>
-              {user?.rol || 'ADMINISTRADOR'}
+              {user?.tipo || user?.rol || 'ADMINISTRADOR'}
             </div>
           </div>
         </div>
