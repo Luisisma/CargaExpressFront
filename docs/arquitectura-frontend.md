@@ -1,12 +1,12 @@
 # Arquitectura y Especificación Técnica del Frontend CargaExpress
 
-Este documento describe a profundidad la arquitectura, dependencias de software, decisiones de diseño, herramientas utilizadas durante la fase de desarrollo y directrices técnicas del cliente Frontend construido con React y Vite.
+Este documento describe a profundidad la arquitectura, dependencias de software, decisiones de diseño, capa de servicios HTTP, control de acceso RBAC por JWT real y directrices técnicas del cliente Frontend construido con React 19 y Vite.
 
 ---
 
 ## 1. Ficha Técnica y Stack Tecnológico
 
-La aplicación está construida como una **Single Page Application (SPA)** moderna, rápida y desacoplada del backend.
+La aplicación está construida como una **Single Page Application (SPA)** moderna, de alto rendimiento y desacoplada del backend FastAPI.
 
 ### 1.1. Dependencias Principales de Producción (`dependencies`)
 
@@ -14,125 +14,127 @@ La aplicación está construida como una **Single Page Application (SPA)** moder
 | :--- | :--- | :--- |
 | **`react`** | `^19.2.8` | Biblioteca principal para la creación de interfaces basada en componentes declarativos y renderizado reactivo. |
 | **`react-dom`** | `^19.2.8` | Motor de montaje y reconciliación del Virtual DOM sobre el navegador web (`createRoot`). |
-| **`react-router-dom`** | `^7.18.3` | Enrutamiento declarativo del lado del cliente, permitiendo navegación instantánea (SPA), anidamiento de rutas jerárquicas (*nested routes*) y layouts desacoplados con `<Outlet />`. |
-| **`bootstrap`** | `^5.3.8` | Sistema de grillas responsivas (grid system de 12 columnas), utilidades de espaciado (`m-*`, `p-*`, `d-flex`) y componentes base de accesibilidad. |
-| **`bootstrap-icons`** | `^1.13.1` | Librería principal de iconografía vectorial integrada en botones, estados de envíos, menús y formularios. |
+| **`react-router-dom`** | `^7.18.3` | Enrutamiento declarativo del lado del cliente, navegación instantánea (SPA), rutas jerárquicas anidadas y layouts desacoplados con `<Outlet />`. |
+| **`bootstrap`** | `^5.3.8` | Sistema de grillas responsivas (grid de 12 columnas), utilidades de espaciado (`m-*`, `p-*`, `d-flex`) y componentes base. |
+| **`bootstrap-icons`** | `^1.13.1` | Iconografía vectorial integrada en botones, badges de estado, barras laterales y formularios. |
 | **`lucide-react`** | `^1.41.0` | Conjunto complementario de iconos SVG modernos y limpios para tableros analíticos y métricas operativas. |
 
-### 1.2. Dependencias y Herramientas de Desarrollo (`devDependencies`)
+### 1.2. Herramientas de Desarrollo (`devDependencies`)
 
 | Herramienta | Versión | Rol en la Fase de Desarrollo |
 | :--- | :--- | :--- |
-| **`vite`** | `^8.2.2` | Entorno de ejecución y empaquetador ultrarrápido (*bundler*). Usa módulos nativos ES (ESM) para un arranque en milisegundos y Hot Module Replacement (HMR) instantáneo al editar código. |
+| **`vite`** | `^8.2.2` | Empaquetador ultrarrápido (*bundler*) basado en ES Modules nativos con Hot Module Replacement (HMR) instantáneo. |
 | **`@vitejs/plugin-react`** | `^6.1.0` | Soporte oficial de Vite para la transformación JSX/TSX y optimización del ciclo de vida de React. |
-| **`eslint`** + plugins | `^10.9.0` | Linter de análisis estático de código para garantizar buenas prácticas en componentes funcionales y reglas estrictas de React Hooks (`eslint-plugin-react-hooks`). |
+| **`eslint`** + plugins | `^10.9.0` | Linter de análisis estático de código para garantizar buenas prácticas y reglas estrictas de React Hooks. |
 
 ---
 
 ## 2. Estructura del Proyecto (`src/`)
 
-La estructura de carpetas sigue una separación clara por responsabilidades:
+La estructura de carpetas implementa una clara separación por capas y dominios:
 
 ```text
 CargaExpressFront/
-├── docs/                      # Documentación técnica y guías de arquitectura
-│   ├── arquitectura-frontend.md
-│   └── guia-ejecucion-y-rutas.md
-├── public/                    # Archivos estáticos servidos directamente
+├── docs/                          # Documentación técnica viva y bitácoras
+│   ├── README.md                  # Índice general del frontend
+│   ├── arquitectura-frontend.md   # Especificación de componentes, servicios y RBAC
+│   ├── guia-ejecucion-y-rutas.md  # Variables de entorno y mapa de navegación
+│   ├── checklist-migracion.md     # Bitácora E2E pantalla por pantalla
+│   └── roles-y-permisos-frontend.md # Matriz de roles y capacidades en interfaz
+├── public/                        # Archivos estáticos servidos directamente
 └── src/
-    ├── assets/                # Logotipos, imágenes vectoriales y recursos visuales
-    ├── components/            # Componentes reutilizables
-    │   └── layout/            # Layouts estructurales (PublicLayout.jsx, AdminLayout.jsx)
-    ├── context/               # Proveedores de estado global (AuthContext.jsx)
-    ├── pages/                 # Vistas ordenadas por dominio funcional
-    │   ├── public/            # Home, Cotizador, RegistrarPedido, PedidoExitoso, Tracking
-    │   ├── auth/              # Login, Verificacion2FA
-    │   └── admin/             # Módulos operativos administrativos:
-    │       ├── dashboard/     # Resumen general y métricas operativas
-    │       ├── envios/        # EnviosList.jsx, EnvioDetalle.jsx
-    │       ├── agencias/      # AgenciasList.jsx
-    │       ├── clientes/      # ClientesList.jsx
-    │       ├── caja/          # CajaDashboard.jsx
-    │       ├── almacen/       # AlmacenStock.jsx
-    │       ├── guias/         # GuiasList.jsx
-    │       ├── manifiestos/   # ManifiestosList.jsx
-    │       ├── courier/       # CourierRepartos.jsx
-    │       └── usuarios/      # UsuariosList.jsx
-    ├── routes/                # Configuración central del enrutador (AppRouter.jsx)
-    ├── App.jsx                # Componente raíz envuelto en AuthProvider
-    ├── index.css              # Design tokens CSS, clases utilitarias y estilos globales
-    └── main.jsx               # Punto de entrada de la aplicación (ReactDOM.createRoot)
+    ├── assets/                    # Logotipos, recursos visuales e imágenes
+    ├── components/                # Componentes reutilizables
+    │   ├── ModalPagoYape.jsx      # Modal con QR dinámico y simulación de Webhook
+    │   └── layout/
+    │       ├── PublicLayout.jsx   # Barra de navegación institucional y pie de página
+    │       └── AdminLayout.jsx    # Sidebar con RBAC dinámico por JWT y topbar de usuario
+    ├── context/
+    │   └── AuthContext.jsx        # Contexto global de autenticación JWT y persistencia
+    ├── services/                  # Capa desacoplada de consumo HTTP REST (Fetch API)
+    │   ├── authService.js         # Login, 2FA, Refresh Token, Recuperar Contraseña y Logout
+    │   ├── envioService.js        # Envíos: listado, detalle, pesaje, despacho, arribo y entrega
+    │   ├── usuarioService.js      # CRUD de colaboradores, asignación de roles y 2FA
+    │   ├── clienteService.js      # Directorio con autocompletado RENIEC/SUNAT
+    │   ├── dashboardService.js    # KPIs analíticos y últimos despachos
+    │   └── publicService.js       # Agencias, cotizador y pre-registro web
+    ├── pages/                     # Vistas agrupadas por dominio funcional
+    │   ├── public/                # Home, Cotizador, RegistrarPedido, PedidoExitoso, Tracking
+    │   ├── auth/                  # Login, Verificacion2FA, RecuperarPassword, RestablecerPassword
+    │   └── admin/                 # Módulos operativos y administrativos:
+    │       ├── Dashboard.jsx      # Tablero operativo adaptativo por rol
+    │       ├── envios/            # EnviosList.jsx, EnvioDetalle.jsx (con modal de entrega)
+    │       ├── caja/              # RecepcionEnvios.jsx (pesaje balanza y cobro), CajaDashboard.jsx
+    │       ├── almacen/           # AlmacenDespacho.jsx, AlmacenArribos.jsx, AlmacenStock.jsx
+    │       ├── agencias/          # AgenciasList.jsx
+    │       ├── clientes/          # ClientesList.jsx
+    │       ├── usuarios/          # UsuariosList.jsx
+    │       ├── guias/             # GuiasList.jsx
+    │       ├── manifiestos/       # ManifiestosList.jsx
+    │       └── courier/           # CourierRepartos.jsx
+    ├── routes/
+    │   └── AppRouter.jsx          # Enrutador central declarativo (React Router v7)
+    ├── index.css                  # Tokens de color institucionales y utilidades globales
+    ├── App.jsx                    # Contenedor raíz con AuthProvider
+    └── main.jsx                   # Punto de entrada React 19 (ReactDOM.createRoot)
 ```
 
 ---
 
-## 3. Patrón Arquitectónico: Composición por Layouts
+## 3. Capa de Servicios HTTP (`src/services/`)
 
-La aplicación implementa el patrón **Layouts Jerárquicos Anidados** mediante `react-router-dom`:
+Toda la comunicación con FastAPI se centraliza en funciones de servicio asíncronas que gestionan cabeceras, inyección automática de tokens JWT y normalización de errores:
 
-```mermaid
-graph TD
-    Root[App.jsx - AuthProvider] --> Router[AppRouter.jsx]
-    Router --> Public[PublicLayout.jsx]
-    Router --> Auth[AuthLayout / Páginas Auth]
-    Router --> Admin[AdminLayout.jsx - Panel Protegido]
-    
-    Public --> Home[Home.jsx]
-    Public --> Cotizar[Cotizador.jsx]
-    Public --> Pedido[RegistrarPedido.jsx]
-    Public --> Track[Tracking.jsx]
-    
-    Auth --> Login[Login.jsx]
-    Auth --> TOTP[Verificacion2FA.jsx]
-    
-    Admin --> Dash[Dashboard.jsx]
-    Admin --> Envios[EnviosList / EnvioDetalle]
-    Admin --> Caja[CajaDashboard.jsx]
-    Admin --> Logistics[Almacen / Guias / Manifiestos]
-    Admin --> Courier[CourierRepartos.jsx]
-    Admin --> Config[Usuarios / Agencias / Clientes]
-```
-
-### 3.1. `PublicLayout.jsx` (Portal Público)
-* Diseñado para clientes y visitantes corporativos.
-* Incluye cabecera institucional (`navbar`) con enlaces de rastreo, cotización, contacto directo por WhatsApp y botón de acceso a trabajadores.
-* Renderiza el contenido dinámico mediante el componente `<Outlet />`.
-* Pie de página unificado con enlaces de cobertura y libro de reclamaciones.
-
-### 3.2. `AdminLayout.jsx` (Plataforma Operativa Interna)
-* Sidebar lateral con ancho corporativo estandarizado de `260px` (`--sidebar-width`).
-* Menú agrupado por áreas de negocio: *Dashboard*, *Operaciones*, *Caja*, *Logística*, *Entregas*, *Configuración*.
-* Indicador visual dinámico de ruta activa mediante `.nav-item a.active`.
-* **Simulador de Roles Integrado:** Selector en el pie del sidebar que permite alternar permisos de rol al instante durante pruebas y revisiones.
-* **Scrollbars invisibles pero operativos:** Aplicado mediante CSS (`scrollbar-width: none`, `::-webkit-scrollbar { display: none; }`) para mantener la elegancia visual en monitores de alta resolución.
-
----
-
-## 4. Estrategias Empleadas en la Fase de Desarrollo
-
-Para garantizar el avance ágil y el desacoplamiento mientras se conecta con los endpoints definitivos del backend, se aplicaron las siguientes técnicas:
-
-### 4.1. Gestión de Sesión y Control de Acceso Simulador (`AuthContext.jsx`)
-* Se implementó un estado global mediante **React Context API**.
-* Almacena datos del usuario conectado: `id`, `nombre`, `email`, `rol` y `agencia`.
-* **Mecanismo de cambio dinámico (`switchRole`):** Permite cambiar en caliente entre los roles definidos por el sistema (`administrador`, `cajero`, `almacen`, `courier`) sin destruir la sesión ni requerir nuevo inicio de sesión, facilitando la validación del comportamiento de interfaz para cada perfil.
-
-### 4.2. Estrategia de Datos de Prueba (*Mock Data Estructurado*)
-* Cada módulo administrativo cuenta con conjuntos de datos realistas adaptados a la realidad operativa logística peruana (departamentos, agencias Lima/Arequipa/Trujillo, precios en PEN S/, estados de tracking estandarizados).
-* Los datos se gestionan mediante hooks `useState` locales para permitir filtrados, búsquedas por texto y paginaciones en tiempo real dentro del cliente.
-
-### 4.3. Marcadores de Migración (*Migration Readiness*)
-Todos los puntos de interacción con datos incluyen comentarios explícitos para la conexión inmediata con la API REST:
 ```javascript
-// MIGRACIÓN FASE 2:
-// Reemplazar mock data con: const { data } = await api.get('/api/v1/envios');
+// Patrón de consumo estandarizado en servicios:
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1';
+
+export const getHeaders = () => {
+  const token = localStorage.getItem('auth_token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+};
 ```
+
+### Servicios Principales:
+1. **`authService.js`:**
+   - `login(identificador, password)`: Inicio de sesión con detección de requerimiento 2FA.
+   - `verificar2FA(temp_token, codigo_totp)`: Intercambio de token temporal por Access Token.
+   - `solicitarRecuperacion(identificador)`: Solicitud de restablecimiento vía Mailtrap.
+   - `restablecerPassword(token, password)`: Cambio de clave con token firmado.
+   - `cerrarSesion()`: Invalidación de tokens en backend incrementando `sesion_version`.
+2. **`envioService.js`:**
+   - `recepcionarEnvio(codigo, data)`: Registro de pesaje en balanza y cobro en origen.
+   - `despacharEnvio(codigo, data)`: Salida de camión hacia `en_ruta`.
+   - `arribarEnvio(codigo, data)`: Recepción de camión y transición a `en_agencia_destino`.
+   - `entregarEnvio(codigo, data)`: Cierre del ciclo de vida exigiendo DNI de quien recoge (`BR-ENV-04`).
+3. **`usuarioService.js`:**
+   - Listado, creación, edición, toggle de activación y enrolamiento QR de 2FA para colaboradores.
+
+---
+
+## 4. Control de Acceso y RBAC Real por JWT
+
+A diferencia de prototipos con selectores artificiales, el sistema implementa **RBAC estricto gobernado por JWT**:
+
+1. **Extracción de Identidad:**
+   Al iniciar sesión exitosamente, el objeto `usuario` (con `rol`, `nombre` y `agencia_id`) se almacena en el estado de `AuthContext`.
+2. **Filtrado Dinámico en `AdminLayout.jsx`:**
+   El menú lateral (`MENU_ITEMS`) evalúa en tiempo real los roles autorizados para cada ítem:
+   - **Administrador:** Acceso irrestricto a todos los módulos (Usuarios, Finanzas, Logística).
+   - **Cajero:** Dashboard, Mis Envíos, Admisión en Balanza, Clientes y Catálogo.
+   - **Almacén:** Dashboard, Mis Envíos, Despacho a Ruta, Arribos (Descarga), Guías y Manifiestos. *Las acciones financieras y creación de personal quedan estrictamente ocultas.*
+   - **Courier:** Dashboard, Mis Envíos y Repartos a Domicilio.
+3. **Respaldo en Servidor:**
+   Cualquier intento de forzar una URL en el navegador es bloqueado por las dependencias `require_role([...])` de FastAPI devolviendo `HTTP 403 Forbidden`.
 
 ---
 
 ## 5. Sistema de Diseño y Tokens CSS (`src/index.css`)
 
-El aspecto visual reproduce fielmente la identidad gráfica corporativa mediante variables nativas CSS:
+El diseño visual reproduce fielmente la identidad gráfica corporativa mediante variables nativas CSS:
 
 ### 5.1. Variables y Tokens de Color
 ```css
@@ -150,38 +152,8 @@ El aspecto visual reproduce fielmente la identidad gráfica corporativa mediante
 ```
 
 ### 5.2. Componentes CSS Reutilizables
-* `.page-shell`: Contenedor principal para estandarizar márgenes y espaciado de cualquier pantalla interna.
+* `.page-shell`: Contenedor principal para estandarizar márgenes de pantallas internas.
 * `.metric-card`: Tarjeta analítica blanca con elevación suave, icono destacado y valor numérico de impacto.
 * `.data-card`: Contenedor para tablas de datos con encabezado, buscador y pie paginador.
-* `.data-table`: Estilo de tabla con tipografía compacta (`13px`), cabeceras en mayúsculas (`11px`, `#4a5568`) y filas alternadas con hover sutil.
-* `.status-badge`: Distintivos visuales para los estados de guía y envío (*Registrado*, *En Tránsito*, *En Almacén*, *Entregado*).
-
----
-
-## 6. Guía y Convenciones para el Desarrollo de Nuevos Módulos
-
-Al crear nuevas pantallas en `src/pages/admin/`:
-
-1. **Estructura HTML obligatoria:**
-   ```jsx
-   <div className="page-shell">
-     <div className="page-header">
-       <div className="page-title-group">
-         <div className="page-icon"><i className="bi bi-[icono]"></i></div>
-         <div>
-           <h1 className="page-heading">Título del Módulo</h1>
-           <p className="page-subtitle">Descripción operativa del módulo</p>
-         </div>
-       </div>
-       <div className="page-actions">
-         {/* Botones de acción principal */}
-       </div>
-     </div>
-
-     {/* Grid de Métricas o Tablas con .data-card */}
-   </div>
-   ```
-
-2. **Resolución y Enfoque:**
-   * El panel administrativo (`/admin/*`) está optimizado con prioridad **PC de escritorio / Estación de Trabajo** (uso por personal de ventanilla, cajeros y operadores logísticos).
-   * La vista pública (`/`, `/tracking`, `/cotizar`) cuenta con soporte totalmente responsivo para dispositivos móviles y computadoras.
+* `.data-table`: Estilo de tabla con tipografía compacta (`13px`), cabeceras en mayúsculas (`11px`) y filas con hover.
+* `.status-badge`: Distintivos visuales para estados logísticos (*Registrado*, *En Tránsito*, *En Agencia Destino*, *Entregado*).

@@ -1,113 +1,101 @@
-# Documentación de Arquitectura y Guía de Migración Frontend
+# Documentación Técnica y Estado de Implementación Frontend
 
-Esta carpeta contiene la documentación oficial del cliente **CargaExpress Frontend (`CargaExpressFront`)**, diseñada para brindar contexto técnico completo, arquitectura del proyecto, estado de avance y la guía paso a paso para continuar con las siguientes fases de desarrollo y mejoras.
+Esta carpeta contiene la documentación oficial del cliente **CargaExpress Frontend (`CargaExpressFront`)**, construida como una Single Page Application (SPA) con **React 19** y **Vite**, completamente integrada de extremo a extremo (E2E) con el Backend REST API FastAPI.
 
 ---
 
-## 1. Arquitectura Técnica Actual
+## 1. Ficha Técnica y Stack Tecnológico
 
-El cliente Frontend se implementó como una **Single Page Application (SPA)** desacoplada, siguiendo los estándares de diseño corporativo de CargaExpress Perú S.A.C.:
-
-* **Librería Core:** React 19.0.0
-* **Herramienta de Construcción:** Vite 8.2 (HMR instantáneo y build optimizado)
-* **Enrutamiento:** React Router DOM 7.2 (navegación declarativa por layouts y guardianes)
-* **Estilos y UI:** Bootstrap 5.3.3 + Bootstrap Icons 1.11.3 + Vanilla CSS en `src/index.css`
+* **Librería Core:** React 19.2.8
+* **Herramienta de Construcción:** Vite 8.2 (HMR instantáneo y build optimizado de producción)
+* **Enrutamiento:** React Router DOM 7.2 (navegación declarativa por layouts y rutas anidadas)
+* **Estilos y UI:** Bootstrap 5.3.8 + Bootstrap Icons 1.13.1 + Vanilla CSS modular en `src/index.css`
 * **Iconografía Complementaria:** Lucide React + Bootstrap Icons
 * **Tipografía Oficial:** Google Font *Plus Jakarta Sans* (pesos 300 a 800)
-* **Identidad de Marca:** RUC Oficial `20100227461`, colores institucionales HSL/HEX (`#1a365d` Azul Noche, `#2b6cb0` Azul Medio, `#e53e3e` Rojo Acento, `#0f2442` Fondo Sidebar).
+* **Identidad de Marca:** RUC Oficial `20100227461`, colores institucionales (`#1a365d` Azul Noche, `#2b6cb0` Azul Medio, `#e53e3e` Rojo Acento, `#0f2442` Fondo Sidebar).
+* **Consumo API:** Fetch API nativo desacoplado en `src/services/` con inyección automática de cabeceras `Authorization: Bearer <JWT>`.
 
 ---
 
-## 2. Estructura del Código Fuente (`src/`)
+## 2. Mapa de Documentación en esta Carpeta (`docs/`)
+
+| Documento | Descripción y Contenido |
+| :--- | :--- |
+| **[README.md](README.md)** | Índice general, stack y estado del proyecto (este archivo). |
+| **[arquitectura-frontend.md](arquitectura-frontend.md)** | Especificación de componentes, layouts, capa de servicios HTTP y diseño visual. |
+| **[guia-ejecucion-y-rutas.md](guia-ejecucion-y-rutas.md)** | Variables de entorno `.env`, comandos de ejecución y mapa exhaustivo de URLs. |
+| **[checklist-migracion.md](checklist-migracion.md)** | Bitácora de seguimiento pantalla por pantalla con estado de integración E2E. |
+| **[roles-y-permisos-frontend.md](roles-y-permisos-frontend.md)** | Matriz RBAC de visibilidad por rol (Admin, Cajero, Almacén, Courier) y ciclo de vida del envío. |
+
+---
+
+## 3. Estructura del Código Fuente (`src/`)
 
 ```text
 CargaExpressFront/
-├── index.html
-├── package.json
-├── vite.config.js
-├── docs/                           # Documentación técnica y bitácoras
-│   ├── README.md                   # Índice general
-│   ├── guia-ejecucion-y-rutas.md   # Comandos para levantar el proyecto y mapa de URLs
-│   ├── arquitectura-frontend.md    # Especificación de componentes y layouts
-│   └── checklist-migracion.md      # Estado detallado de avance por pantalla
-├── public/
-│   ├── favicon.svg                 # Isotipo de la caja
-│   └── portada.jpg                 # Fotografía del almacén para Login y 2FA
+├── docs/                             # Documentación técnica viva y guías
+│   ├── README.md
+│   ├── arquitectura-frontend.md
+│   ├── guia-ejecucion-y-rutas.md
+│   ├── checklist-migracion.md
+│   └── roles-y-permisos-frontend.md
+├── public/                           # Recursos estáticos servidos directamente
 └── src/
-    ├── index.css                   # Sistema de diseño, tokens, metric-cards, scrollbars
-    ├── App.jsx                     # Proveedor AuthProvider y AppRouter
-    ├── main.jsx                    # Punto de entrada React 19
-    ├── context/
-    │   └── AuthContext.jsx         # Simulación de sesión con switcher de roles (admin, cajero, almacen, courier)
     ├── components/
+    │   ├── ModalPagoYape.jsx         # Modal de pago con QR y webhook simulado
     │   └── layout/
-    │       ├── PublicLayout.jsx    # Navbar con enlaces públicos y footer corporativo
-    │       └── AdminLayout.jsx     # Sidebar idéntico al monolito con selector de rol y topbar
+    │       ├── PublicLayout.jsx      # Navbar público corporativo y footer
+    │       └── AdminLayout.jsx       # Sidebar con RBAC estricto gobernado por JWT
+    ├── context/
+    │   └── AuthContext.jsx           # Proveedor de sesión JWT real y persistencia
+    ├── services/                     # Capa desacoplada de consumo HTTP REST
+    │   ├── authService.js            # Login, 2FA, recuperación y logout
+    │   ├── envioService.js           # Envíos, pesaje, despacho, arribo y entrega
+    │   ├── usuarioService.js         # CRUD de colaboradores y enrolamiento 2FA
+    │   ├── clienteService.js         # Directorio de clientes con autocompletado
+    │   ├── dashboardService.js       # Métricas operativas del tablero
+    │   └── publicService.js          # Cotizador, agencias y pre-registro web
     ├── pages/
-    │   ├── public/                 # Vistas de acceso público
-    │   │   ├── Home.jsx            # Landing page con tracking box interactivo
-    │   │   ├── Cotizador.jsx       # Cotizador volumétrico (L*A*H / 6000)
-    │   │   ├── RegistrarPedido.jsx # Formulario multi-paso con soporte responsivo móvil avanzado
-    │   │   ├── PedidoExitoso.jsx   # Confirmación con código tracking y código QR simulado
-    │   │   └── Tracking.jsx        # Línea de tiempo cronológica de encomiendas
-    │   ├── auth/                   # Autenticación de colaboradores
-    │   │   ├── Login.jsx           # Paso 1: Login de 2 columnas con curva SVG y fondo de almacén
-    │   │   └── Verificacion2FA.jsx # Paso 2: TOTP de 6 dígitos con diseño integrado
-    │   └── admin/                  # Panel administrativo y de operaciones
-    │       ├── Dashboard.jsx       # Tablero operativo réplica exacta del monolito (PC)
-    │       ├── envios/             # Gestión de encomiendas (EnviosList, EnvioDetalle)
-    │       ├── caja/               # Apertura, arqueo y liquidación de caja
-    │       ├── almacen/            # Stock físico de bultos
-    │       ├── guias/              # Guías de remisión electrónicas
-    │       ├── manifiestos/        # Consolidado de carga interprovincial en camiones
-    │       ├── courier/            # Reparto de última milla a domicilio
-    │       ├── agencias/           # Directorio de las 52 agencias nacionales
-    │       ├── clientes/           # Directorio y búsqueda de clientes DNI/RUC
-    │       └── usuarios/           # Mantenimiento de personal y perfiles
-    └── routes/
-        └── AppRouter.jsx           # Configuración central de rutas públicas y privadas
+    │   ├── public/                   # Vistas de acceso libre (Home, Cotizar, Tracking...)
+    │   ├── auth/                     # Autenticación (Login, 2FA, Recuperación de clave)
+    │   └── admin/                    # Módulos operativos y administrativos:
+    │       ├── Dashboard.jsx         # Tablero con KPIs reactivos por rol
+    │       ├── envios/               # EnviosList.jsx, EnvioDetalle.jsx (con modal de entrega)
+    │       ├── caja/                 # RecepcionEnvios.jsx (balanza y cobro), CajaDashboard.jsx
+    │       ├── almacen/              # AlmacenDespacho.jsx, AlmacenArribos.jsx, AlmacenStock.jsx
+    │       ├── agencias/             # AgenciasList.jsx
+    │       ├── clientes/             # ClientesList.jsx
+    │       ├── usuarios/             # UsuariosList.jsx (RBAC)
+    │       ├── guias/                # GuiasList.jsx
+    │       ├── manifiestos/          # ManifiestosList.jsx
+    │       └── courier/              # CourierRepartos.jsx
+    ├── routes/
+    │   └── AppRouter.jsx             # Enrutador central declarativo (React Router v7)
+    ├── index.css                     # Tokens CSS institucionales y clases utilitarias
+    ├── App.jsx                       # Montaje raíz con AuthProvider
+    └── main.jsx                      # Punto de entrada React 19
 ```
 
 ---
 
-## 3. Estado de Avance por Módulos
+## 4. Hitos de Implementación Culminados E2E
 
-### ✅ Módulos Culminados:
-1. **Portal Público y Clientes:**
-   * **Home (`/`):** Réplica visual fiel con hero gradient, recuadro de rastreo y beneficios. Responsividad total para celulares y tablets.
-   * **Cotizador (`/cotizar`):** Algoritmo de peso volumétrico funcional.
-   * **Registro de Pedido (`/registrar-pedido`):** Stepper interactivo en 4 pasos, selector DNI/RUC con autocompletado RENIEC simulado, panel de precio estimado dinámico y **diseño responsivo móvil optimizado** (banner de precio sticky, botones touch de ancho completo).
-   * **Tracking (`/tracking`):** Historial y timeline de eventos.
-2. **Autenticación:**
-   * **Login (`/auth/login`) y 2FA (`/auth/2fa`):** Diseño de 2 columnas con imagen institucional `/portada.jpg`, divisor curvo sinusoidal SVG y adaptación para pantallas táctiles.
-3. **Dashboard Administrativo (`/admin/dashboard` - Versión PC):**
-   * Réplica exacta de los 4 KPIs corporativos (Total Envíos, Envíos Hoy, Ingresos Hoy, Pendientes de Pago).
-   * Tabla de "Últimos Envíos" sincronizada con los registros reales del sistema.
-   * Acciones rápidas (`Registrar Envío`, `Generar Guías`, `Generar Manifiestos`, `Gestionar Usuarios`).
-   * Eliminación y ocultamiento total de la barra de desplazamiento (*scrollbar*) en el menú lateral para PC de escritorio.
+### ✅ 1. Portal Público y Clientes
+- **Landing Page (`/`):** Hero visual, tracking interactivo y propuesta de valor con diseño responsivo móvil.
+- **Cotizador de Envíos (`/cotizar`):** Consumo del endpoint oficial `/api/v1/publico/cotizar` con fórmula $(L \times A \times H)/6000$ y recargo a domicilio.
+- **Pre-registro Web (`/registrar-pedido`):** Stepper en 4 pasos, autocompletado en tiempo real con RENIEC y SUNAT (`GET /api/v1/publico/buscar-cliente`), cálculo contable de IGV y generación de pre-orden.
+- **Tracking en Vivo (`/tracking/:codigo`):** Rastreo público con enmascaramiento estricto de PII y cronología de hitos.
 
----
+### ✅ 2. Seguridad y Autenticación con JWT Real
+- **Login (`/auth/login`):** Validación contra la base de datos y emisión de token Bearer.
+- **Segundo Factor 2FA (`/auth/2fa`):** Validación de TOTP de 6 dígitos con generación de QR en pantalla.
+- **Recuperación de Contraseña (`/auth/recuperar-password` y `/auth/restablecer-password`):** Tokens temporales de 15 minutos e integración de correos vía Mailtrap.
+- **Cierre de Sesión:** Invalidación global en servidor incrementando `sesion_version`.
 
-## 4. Tareas Pendientes (Roadmap de Continuidad)
-
-Para la persona o equipo que continúe la migración de Frontend:
-
-1. **Panel Administrativo en Móviles (Smartphone / Tablet):**
-   * *Estado:* Actualmente el panel `/admin/*` está optimizado para experiencia de escritorio (PC).
-   * *Acción futura:* Adaptar las tablas y tarjetas internas a interfaces móviles de una sola columna cuando se requiera soporte administrativo en celulares.
-2. **Formulario en Ventanilla (`/admin/envios/nuevo`):**
-   * Construir la vista que utiliza el cajero físico en agencia para pesar la encomienda, seleccionar tipo de pago (efectivo, Yape, Plin) e imprimir etiqueta de despacho.
-3. **Modales de Caja (`/admin/caja`):**
-   * Agregar ventanas modales para Apertura de Turno, Movimiento de Entrada/Salida de efectivo y Arqueo de Cierre diario.
-4. **Enriquecimiento de Vistas Logísticas (`/admin/almacen`, `/admin/guias`, `/admin/manifiestos`):**
-   * Incorporar tablas con filtros avanzados y botones de acción (Imprimir Guía en PDF, Asignar Camión, Descargar Manifiesto).
-5. **Fase 2 - Conexión al Backend (FastAPI):**
-   * En cada página existe un comentario señalando dónde se sustituirán los datos simulados (*mocks*) por llamadas `fetch` / `axios` hacia los endpoints REST de la API (`/api/v1/...`).
-
----
-
-## 5. Guías Relacionadas
-
-* [Guía de Ejecución y Rutas](guia-ejecucion-y-rutas.md): Pasos para instalar, correr `npm run dev` y listado completo de rutas.
-* [Arquitectura y Rutas Detalladas](arquitectura-frontend.md): Especificación técnica exhaustiva de props, layouts y guardianes.
-* [Checklist de Migración](checklist-migracion.md): Lista de verificación elemento por elemento.
+### ✅ 3. Intranet Operativa y Cadena de Vida Completa del Envío
+- **Recepción en Balanza (`/admin/caja/recepcion`):** Pesaje oficial en origen, recálculo tarifario por sobrepeso (`BR-TAR-02`), cobro en mostrador (Efectivo/Yape con Webhook) y transición a `en_almacen_origen`.
+- **Despacho a Ruta (`/admin/almacen/despacho`):** Validación de bultos pagados (`BR-ENV-02`), selección de camión y transición a `en_ruta`.
+- **Arribo y Descarga (`/admin/almacen/arribos`):** Recepción de camión en sede destino y transición a `en_agencia_destino`.
+- **Entrega Final (`/admin/envios/:id`):** Botón verde interactivo y modal con registro obligatorio de DNI y parentesco del receptor físico (`BR-ENV-04`), cerrando la orden en `entregado`.
+- **RBAC por JWT Real:** Menú lateral de `AdminLayout.jsx` y métricas del `Dashboard.jsx` adaptadas al rol del colaborador (las finanzas no son visibles para operadores de bodega).
+- **Gestión de Usuarios (`/admin/usuarios`):** Mantenimiento de personal con asignación de roles NIST y enrolamiento de 2FA.

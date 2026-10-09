@@ -1,87 +1,62 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { dashboardService } from '../../services/dashboardService';
 
 /**
  * Dashboard Administrativo - CargaExpress Perú S.A.C.
- * 
- * NOTA DE MIGRACIÓN:
- * Los datos mostrados (estadísticas, últimos envíos) corresponden a mocks visuales 
- * de alta fidelidad que replican exactamente la vista del monolito Flask/Jinja2.
- * En la siguiente fase (Fase 2 - Backend FastAPI), estas variables se consumirán
- * mediante llamadas reactivas a la API REST /api/v1/dashboard/stats y /api/v1/envios.
+ * Conectado 100% a la API REST FastAPI (/api/v1/dashboard/resumen)
  */
 export default function Dashboard() {
   const { user } = useAuth();
 
-  // Fecha simulada formateada al estándar de la vista original
-  const fechaHoy = 'domingo 06 de septiembre, 2026';
-
-  // KPIs idénticos a la vista original
-  const stats = {
-    envios_total: 6,
+  const [fechaHoy, setFechaHoy] = useState('Cargando fecha...');
+  const [stats, setStats] = useState({
+    envios_total: 0,
     envios_hoy: 0,
     ingresos_hoy: 0,
-    pendientes_pago: 2
+    pendientes_pago: 0
+  });
+  const [ultimosEnvios, setUltimosEnvios] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState('');
+
+  const cargarDashboard = async () => {
+    try {
+      setCargando(true);
+      setError('');
+      const data = await dashboardService.getResumen();
+      if (data) {
+        setStats(data.stats || { envios_total: 0, envios_hoy: 0, ingresos_hoy: 0, pendientes_pago: 0 });
+        setUltimosEnvios(data.ultimos_envios || []);
+        setFechaHoy(data.fecha_hoy || 'Hoy');
+      }
+    } catch (err) {
+      setError(err.message || 'No se pudieron sincronizar las métricas con el servidor.');
+    } finally {
+      setCargando(false);
+    }
   };
 
-  // Últimos envíos extraídos con exactitud de la captura del sistema
-  const ultimosEnvios = [
-    {
-      id: 1,
-      codigo_tracking: 'CESEKB8H3P0D',
-      remitente: 'LUIS HUMBERTO MORALES ME',
-      destino: 'AGENCIA CAJAMARCA - CAJAMARCA',
-      estado: 'Registrado',
-      badgeClass: 'badge bg-secondary',
-      fecha: '30/08 22:34'
-    },
-    {
-      id: 2,
-      codigo_tracking: 'CE44RHOEDYWK',
-      remitente: 'MARTIN ARTURO SANCHEZ ME',
-      destino: 'AGENCIA APURÍMAC - ANDAHUAYLAS',
-      estado: 'Entregado',
-      badgeClass: 'badge bg-success',
-      fecha: '16/07 02:03'
-    },
-    {
-      id: 3,
-      codigo_tracking: 'CEBU6UEUU0S8',
-      remitente: 'CA SOLUTIONS S.A.C.',
-      destino: 'AGENCIA LIMA - JAVIER PRADO',
-      estado: 'En Tránsito',
-      badgeClass: 'badge bg-warning text-dark',
-      fecha: '11/07 16:15'
-    },
-    {
-      id: 4,
-      codigo_tracking: 'CE1AV4U79P70',
-      remitente: 'MOISES CHINGUEL CULQUI',
-      destino: 'AGENCIA AREQUIPA - PLAZA DE ARMAS',
-      estado: 'Entregado',
-      badgeClass: 'badge bg-success',
-      fecha: '01/07 23:11'
-    },
-    {
-      id: 5,
-      codigo_tracking: 'CE94PSLQ8R6S',
-      remitente: 'Cliente Prueba Postman',
-      destino: 'AGENCIA AREQUIPA - PLAZA DE ARMAS',
-      estado: 'Registrado',
-      badgeClass: 'badge bg-secondary',
-      fecha: '01/07 21:51'
-    },
-    {
-      id: 6,
-      codigo_tracking: 'CEU177DRNQGU',
-      remitente: 'DEPLOY-VALIDATION-070110',
-      destino: 'AGENCIA AREQUIPA - PLAZA DE ARMAS',
-      estado: 'Entregado',
-      badgeClass: 'badge bg-success',
-      fecha: '01/07 10:01'
-    }
-  ];
+  useEffect(() => {
+    cargarDashboard();
+  }, []);
+
+  const getBadgeClass = (estado) => {
+    const e = (estado || '').toLowerCase();
+    if (e.includes('entregado')) return 'badge bg-success';
+    if (e.includes('transito')) return 'badge bg-info text-dark';
+    if (e.includes('almacen')) return 'badge bg-warning text-dark';
+    return 'badge bg-secondary';
+  };
+
+
+  const rolActual = (user?.tipo || user?.rol || 'administrador').toLowerCase();
+  const nombreDisplay = user?.nombres 
+    ? user.nombres.split(' ')[0] 
+    : (user?.nombre_completo 
+        ? user.nombre_completo.split(' ')[0] 
+        : (user?.nombre ? user.nombre.split(' ')[0] : 'Colaborador'));
 
   return (
     <div className="page-shell">
@@ -93,26 +68,52 @@ export default function Dashboard() {
           </div>
           <div>
             <h1 className="page-heading">
-              Buen día, {user?.nombre ? user.nombre.split(' ')[0] : 'Administrador'}
+              Buen día, {nombreDisplay}
             </h1>
             <p className="page-subtitle">
-              <span className="text-capitalize">{user?.rol || 'Administrador'}</span> · {fechaHoy}
+              <span className="text-uppercase fw-semibold text-primary">{user?.tipo || user?.rol || 'COLABORADOR'}</span> · {fechaHoy}
             </p>
           </div>
         </div>
 
         <div className="page-actions w-100 w-sm-auto">
-          <Link
-            to="/registrar-pedido"
-            className="btn btn-primary w-100 w-sm-auto d-inline-flex align-items-center justify-content-center gap-2 fw-semibold px-3 py-2 shadow-sm rounded-3"
-          >
-            <i className="bi bi-plus-circle"></i>
-            <span>Registrar Envío</span>
-          </Link>
+          {rolActual === 'almacen' ? (
+            <Link
+              to="/admin/almacen/despacho"
+              className="btn btn-primary w-100 w-sm-auto d-inline-flex align-items-center justify-content-center gap-2 fw-semibold px-3 py-2 shadow-sm rounded-3"
+            >
+              <i className="bi bi-truck"></i>
+              <span>Despacho a Ruta</span>
+            </Link>
+          ) : rolActual === 'cajero' ? (
+            <Link
+              to="/admin/caja/recepcion"
+              className="btn btn-primary w-100 w-sm-auto d-inline-flex align-items-center justify-content-center gap-2 fw-semibold px-3 py-2 shadow-sm rounded-3"
+            >
+              <i className="bi bi-box-seam"></i>
+              <span>Recepción (Mostrador)</span>
+            </Link>
+          ) : rolActual === 'courier' ? (
+            <Link
+              to="/admin/courier"
+              className="btn btn-primary w-100 w-sm-auto d-inline-flex align-items-center justify-content-center gap-2 fw-semibold px-3 py-2 shadow-sm rounded-3"
+            >
+              <i className="bi bi-bicycle"></i>
+              <span>Mis Entregas</span>
+            </Link>
+          ) : (
+            <Link
+              to="/registrar-pedido"
+              className="btn btn-primary w-100 w-sm-auto d-inline-flex align-items-center justify-content-center gap-2 fw-semibold px-3 py-2 shadow-sm rounded-3"
+            >
+              <i className="bi bi-plus-circle"></i>
+              <span>Registrar Envío</span>
+            </Link>
+          )}
         </div>
       </div>
 
-      {/* 4 Tarjetas de Métricas (KPIs) - Responsivas (2 cols en celular, 4 en desktop) */}
+      {/* 4 Tarjetas de Métricas (KPIs) - Adaptadas por Rol (Almacén vs Finanzas) */}
       <div className="row g-3">
         <div className="col-6 col-md-3">
           <div className="metric-card">
@@ -138,29 +139,59 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="col-6 col-md-3">
-          <div className="metric-card">
-            <div className="metric-icon red">
-              <i className="bi bi-cash-stack"></i>
+        {rolActual === 'almacen' ? (
+          <>
+            <div className="col-6 col-md-3">
+              <div className="metric-card">
+                <div className="metric-icon blue">
+                  <i className="bi bi-truck"></i>
+                </div>
+                <div>
+                  <div className="metric-value text-primary fs-5 fw-bold">Despacho</div>
+                  <div className="metric-label">Módulo Camiones</div>
+                </div>
+              </div>
             </div>
-            <div>
-              <div className="metric-value">S/{stats.ingresos_hoy}</div>
-              <div className="metric-label">Ingresos Hoy</div>
-            </div>
-          </div>
-        </div>
 
-        <div className="col-6 col-md-3">
-          <div className="metric-card">
-            <div className="metric-icon red">
-              <i className="bi bi-credit-card-2-front-fill"></i>
+            <div className="col-6 col-md-3">
+              <div className="metric-card">
+                <div className="metric-icon green">
+                  <i className="bi bi-box-arrow-in-down"></i>
+                </div>
+                <div>
+                  <div className="metric-value text-success fs-5 fw-bold">Arribos</div>
+                  <div className="metric-label">Descarga Bodega</div>
+                </div>
+              </div>
             </div>
-            <div>
-              <div className="metric-value">{stats.pendientes_pago}</div>
-              <div className="metric-label">Pendientes de Pago</div>
+          </>
+        ) : (
+          <>
+            <div className="col-6 col-md-3">
+              <div className="metric-card">
+                <div className="metric-icon red">
+                  <i className="bi bi-cash-stack"></i>
+                </div>
+                <div>
+                  <div className="metric-value">S/{stats.ingresos_hoy}</div>
+                  <div className="metric-label">Ingresos Hoy</div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+
+            <div className="col-6 col-md-3">
+              <div className="metric-card">
+                <div className="metric-icon red">
+                  <i className="bi bi-credit-card-2-front-fill"></i>
+                </div>
+                <div>
+                  <div className="metric-value">{stats.pendientes_pago}</div>
+                  <div className="metric-label">Pendientes de Pago</div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Sección Inferior: Tabla de Envíos (8 cols) + Acciones Rápidas (4 cols) */}
@@ -191,37 +222,52 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {ultimosEnvios.map((e) => (
-                    <tr key={e.id}>
-                      <td>
-                        <code className="text-primary fw-semibold" style={{ fontSize: '13px' }}>
-                          {e.codigo_tracking}
-                        </code>
-                      </td>
-                      <td className="text-dark" style={{ fontSize: '13px' }}>{e.remitente}</td>
-                      <td className="text-secondary" style={{ fontSize: '13px' }}>{e.destino}</td>
-                      <td>
-                        <span className={e.badgeClass} style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '6px' }}>
-                          {e.estado}
-                        </span>
-                      </td>
-                      <td>
-                        <small className="text-muted" style={{ fontSize: '12px' }}>{e.fecha}</small>
-                      </td>
-                      <td>
-                        <div className="action-group d-flex justify-content-end">
-                          <Link
-                            to={`/admin/envios/${e.id}`}
-                            className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center justify-content-center"
-                            style={{ width: '32px', height: '32px', padding: 0 }}
-                            title="Ver detalle"
-                          >
-                            <i className="bi bi-eye"></i>
-                          </Link>
-                        </div>
+                  {cargando ? (
+                    <tr>
+                      <td colSpan="6" className="text-center py-4 text-muted">
+                        <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                        Cargando últimos despachos...
                       </td>
                     </tr>
-                  ))}
+                  ) : ultimosEnvios.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="text-center py-4 text-muted">
+                        No hay encomiendas registradas aún.
+                      </td>
+                    </tr>
+                  ) : (
+                    ultimosEnvios.map((e) => (
+                      <tr key={e.id}>
+                        <td>
+                          <code className="text-primary fw-semibold" style={{ fontSize: '13px' }}>
+                            {e.codigo_tracking}
+                          </code>
+                        </td>
+                        <td className="text-dark" style={{ fontSize: '13px' }}>{e.remitente}</td>
+                        <td className="text-secondary" style={{ fontSize: '13px' }}>{e.destino}</td>
+                        <td>
+                          <span className={getBadgeClass(e.estado)} style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '6px' }}>
+                            {e.estado}
+                          </span>
+                        </td>
+                        <td>
+                          <small className="text-muted" style={{ fontSize: '12px' }}>{e.fecha}</small>
+                        </td>
+                        <td>
+                          <div className="action-group d-flex justify-content-end">
+                            <Link
+                              to={`/admin/envios/${e.id}`}
+                              className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center justify-content-center"
+                              style={{ width: '32px', height: '32px', padding: 0 }}
+                              title="Ver detalle"
+                            >
+                              <i className="bi bi-eye"></i>
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -237,37 +283,127 @@ export default function Dashboard() {
                 <span>Acciones Rápidas</span>
               </h2>
               <div className="d-flex flex-column gap-2">
-                <Link
-                  to="/registrar-pedido"
-                  className="btn btn-primary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3"
-                >
-                  <i className="bi bi-plus-circle me-2"></i>
-                  <span>Registrar Envío</span>
-                </Link>
+                {rolActual === 'almacen' ? (
+                  <>
+                    <Link
+                      to="/admin/almacen/despacho"
+                      className="btn btn-primary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3 shadow-sm"
+                    >
+                      <i className="bi bi-truck me-2"></i>
+                      <span>Despacho a Ruta (Camiones)</span>
+                    </Link>
 
-                <Link
-                  to="/admin/guias"
-                  className="btn btn-outline-primary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3"
-                >
-                  <i className="bi bi-file-earmark-plus me-2"></i>
-                  <span>Generar Guías</span>
-                </Link>
+                    <Link
+                      to="/admin/almacen/arribos"
+                      className="btn btn-outline-primary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3"
+                    >
+                      <i className="bi bi-box-arrow-in-down me-2"></i>
+                      <span>Arribos (Descarga Bodega)</span>
+                    </Link>
 
-                <Link
-                  to="/admin/manifiestos"
-                  className="btn btn-outline-primary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3"
-                >
-                  <i className="bi bi-clipboard2-plus me-2"></i>
-                  <span>Generar Manifiestos</span>
-                </Link>
+                    <Link
+                      to="/admin/guias"
+                      className="btn btn-outline-secondary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3"
+                    >
+                      <i className="bi bi-file-earmark-text me-2"></i>
+                      <span>Guías de Remisión</span>
+                    </Link>
 
-                <Link
-                  to="/admin/usuarios"
-                  className="btn btn-outline-secondary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3"
-                >
-                  <i className="bi bi-people me-2"></i>
-                  <span>Gestionar Usuarios</span>
-                </Link>
+                    <Link
+                      to="/admin/manifiestos"
+                      className="btn btn-outline-secondary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3"
+                    >
+                      <i className="bi bi-folder2 me-2"></i>
+                      <span>Manifiestos de Carga</span>
+                    </Link>
+                  </>
+                ) : rolActual === 'cajero' ? (
+                  <>
+                    <Link
+                      to="/admin/caja/recepcion"
+                      className="btn btn-primary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3 shadow-sm"
+                    >
+                      <i className="bi bi-box-seam me-2"></i>
+                      <span>Recepción en Ventanilla</span>
+                    </Link>
+
+                    <Link
+                      to="/registrar-pedido"
+                      className="btn btn-outline-primary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3"
+                    >
+                      <i className="bi bi-plus-circle me-2"></i>
+                      <span>Nuevo Envío (Mostrador)</span>
+                    </Link>
+
+                    <Link
+                      to="/admin/caja"
+                      className="btn btn-outline-secondary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3"
+                    >
+                      <i className="bi bi-wallet2 me-2"></i>
+                      <span>Arqueo y Cierre de Caja</span>
+                    </Link>
+
+                    <Link
+                      to="/admin/envios"
+                      className="btn btn-outline-secondary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3"
+                    >
+                      <i className="bi bi-list-ul me-2"></i>
+                      <span>Mis Envíos de Sede</span>
+                    </Link>
+                  </>
+                ) : rolActual === 'courier' || rolActual === 'transportista' ? (
+                  <>
+                    <Link
+                      to="/admin/courier"
+                      className="btn btn-primary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3 shadow-sm"
+                    >
+                      <i className="bi bi-bicycle me-2"></i>
+                      <span>Mis Entregas Asignadas</span>
+                    </Link>
+
+                    <Link
+                      to="/admin/envios"
+                      className="btn btn-outline-secondary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3"
+                    >
+                      <i className="bi bi-search me-2"></i>
+                      <span>Consultar Envíos y Guías</span>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/registrar-pedido"
+                      className="btn btn-primary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3 shadow-sm"
+                    >
+                      <i className="bi bi-plus-circle me-2"></i>
+                      <span>Registrar Envío</span>
+                    </Link>
+
+                    <Link
+                      to="/admin/guias"
+                      className="btn btn-outline-primary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3"
+                    >
+                      <i className="bi bi-file-earmark-plus me-2"></i>
+                      <span>Generar Guías</span>
+                    </Link>
+
+                    <Link
+                      to="/admin/manifiestos"
+                      className="btn btn-outline-primary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3"
+                    >
+                      <i className="bi bi-clipboard2-plus me-2"></i>
+                      <span>Generar Manifiestos</span>
+                    </Link>
+
+                    <Link
+                      to="/admin/usuarios"
+                      className="btn btn-outline-secondary btn-sm py-2 px-3 fw-semibold text-start d-flex align-items-center rounded-3"
+                    >
+                      <i className="bi bi-people me-2"></i>
+                      <span>Gestionar Personal y Usuarios</span>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>

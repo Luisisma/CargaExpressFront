@@ -15,6 +15,8 @@ import Tracking from '../pages/public/Tracking';
 // Vistas de Autenticación
 import Login from '../pages/auth/Login';
 import Verificacion2FA from '../pages/auth/Verificacion2FA';
+import RecuperarPassword from '../pages/auth/RecuperarPassword';
+import RestablecerPassword from '../pages/auth/RestablecerPassword';
 
 // Vistas Administrativas
 import Dashboard from '../pages/admin/Dashboard';
@@ -23,7 +25,10 @@ import EnvioDetalle from '../pages/admin/envios/EnvioDetalle';
 import AgenciasList from '../pages/admin/agencias/AgenciasList';
 import ClientesList from '../pages/admin/clientes/ClientesList';
 import CajaDashboard from '../pages/admin/caja/CajaDashboard';
+import RecepcionEnvios from '../pages/admin/caja/RecepcionEnvios';
 import AlmacenStock from '../pages/admin/almacen/AlmacenStock';
+import AlmacenDespacho from '../pages/admin/almacen/AlmacenDespacho';
+import AlmacenArribos from '../pages/admin/almacen/AlmacenArribos';
 import GuiasList from '../pages/admin/guias/GuiasList';
 import ManifiestosList from '../pages/admin/manifiestos/ManifiestosList';
 import CourierRepartos from '../pages/admin/courier/CourierRepartos';
@@ -46,6 +51,8 @@ export default function AppRouter() {
         {/* Rutas de Autenticación */}
         <Route path="/auth/login" element={<Login />} />
         <Route path="/auth/2fa" element={<Verificacion2FA />} />
+        <Route path="/auth/recuperar-password" element={<RecuperarPassword />} />
+        <Route path="/auth/restablecer-password" element={<RestablecerPassword />} />
 
         {/* Rutas Administrativas */}
         <Route path="/admin" element={<AdminLayout />}>
@@ -56,7 +63,10 @@ export default function AppRouter() {
           <Route path="agencias" element={<AgenciasList />} />
           <Route path="clientes" element={<ClientesList />} />
           <Route path="caja" element={<CajaDashboard />} />
+          <Route path="caja/recepcion" element={<RecepcionEnvios />} />
           <Route path="almacen" element={<AlmacenStock />} />
+          <Route path="almacen/despacho" element={<AlmacenDespacho />} />
+          <Route path="almacen/arribos" element={<AlmacenArribos />} />
           <Route path="guias" element={<GuiasList />} />
           <Route path="manifiestos" element={<ManifiestosList />} />
           <Route path="courier" element={<CourierRepartos />} />

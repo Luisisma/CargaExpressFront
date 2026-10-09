@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, isAuthenticated, logout, switchRole } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -20,43 +20,69 @@ export default function AdminLayout() {
     navigate('/auth/login');
   };
 
-  const navSections = [
+  const rolActual = (user?.tipo || user?.rol || 'administrador').toLowerCase();
+
+  // Definición de secciones y permisos de acceso RBAC por rol real
+  const allSections = [
     {
       title: '',
+      roles: ['administrador', 'supervisor', 'cajero', 'almacen', 'courier', 'transportista'],
       items: [
         { name: 'Dashboard', path: '/admin/dashboard', icon: 'bi-grid-fill' },
       ]
     },
     {
       title: 'OPERACIONES',
+      roles: ['administrador', 'supervisor', 'cajero', 'almacen'],
       items: [
-        { name: 'Nuevo Envío', path: '/registrar-pedido', icon: 'bi-plus-square' },
-        { name: 'Mis Envíos', path: '/admin/envios', icon: 'bi-list-ul' },
+        { name: 'Nuevo Envío', path: '/registrar-pedido', icon: 'bi-plus-square', roles: ['administrador', 'supervisor', 'cajero'] },
+        { name: 'Mis Envíos', path: '/admin/envios', icon: 'bi-list-ul', roles: ['administrador', 'supervisor', 'cajero', 'almacen'] },
       ]
     },
     {
-      title: 'CAJA',
+      title: 'ADMINISTRACIÓN',
+      roles: ['administrador'],
       items: [
-        { name: 'Apertura de Caja', path: '/admin/caja', icon: 'bi-lock' },
+        { name: 'Personal y Usuarios', path: '/admin/usuarios', icon: 'bi-people-fill' },
+        { name: 'Sedes y Agencias', path: '/admin/agencias', icon: 'bi-geo-alt-fill' },
+      ]
+    },
+
+    {
+      title: 'CAJA',
+      roles: ['administrador', 'supervisor', 'cajero'],
+      items: [
+        { name: 'Recepción (Mostrador)', path: '/admin/caja/recepcion', icon: 'bi-box-seam' },
         { name: 'Cierre de Caja', path: '/admin/caja', icon: 'bi-wallet2' },
       ]
     },
     {
       title: 'LOGÍSTICA',
+      roles: ['administrador', 'supervisor', 'almacen'],
       items: [
-        { name: 'Almacén', path: '/admin/almacen', icon: 'bi-building' },
+        { name: 'Despacho a Ruta', path: '/admin/almacen/despacho', icon: 'bi-truck' },
+        { name: 'Arribos (Descarga)', path: '/admin/almacen/arribos', icon: 'bi-box-arrow-in-down' },
         { name: 'Guías de Remisión', path: '/admin/guias', icon: 'bi-file-earmark-text' },
         { name: 'Manifiestos', path: '/admin/manifiestos', icon: 'bi-folder2' },
-        { name: 'Transportistas', path: '/admin/manifiestos', icon: 'bi-truck' },
       ]
     },
     {
       title: 'ENTREGAS',
+      roles: ['administrador', 'supervisor', 'courier', 'transportista'],
       items: [
         { name: 'Mis Entregas', path: '/admin/courier', icon: 'bi-bicycle' },
       ]
     }
   ];
+
+  // Filtrado de módulos e items según el rol real del usuario conectado (JWT)
+  const navSections = allSections
+    .filter((sec) => sec.roles.includes(rolActual))
+    .map((sec) => ({
+      ...sec,
+      items: sec.items.filter((item) => !item.roles || item.roles.includes(rolActual))
+    }))
+    .filter((sec) => sec.items.length > 0);
 
   return (
     <div className="d-flex min-vh-100 bg-light">
@@ -142,24 +168,6 @@ export default function AdminLayout() {
               </ul>
             </div>
           ))}
-        </div>
-
-        {/* Role Switcher (Simulación) */}
-        <div className="px-3 py-2 border-top border-secondary border-opacity-25 bg-dark bg-opacity-25">
-          <label className="text-white-50 small d-block mb-1" style={{ fontSize: '11px' }}>
-            Simular Rol:
-          </label>
-          <select
-            value={user?.rol || 'administrador'}
-            onChange={(e) => switchRole(e.target.value)}
-            className="form-select form-select-sm bg-dark text-white border-secondary"
-            style={{ fontSize: '12px' }}
-          >
-            <option value="administrador">Administrador</option>
-            <option value="cajero">Cajero</option>
-            <option value="almacen">Almacén</option>
-            <option value="courier">Courier</option>
-          </select>
         </div>
 
         {/* Logout Footer - Idéntico al monolito original */}

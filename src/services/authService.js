@@ -105,5 +105,31 @@ export const authService = {
         Authorization: `Bearer ${accessToken}`
       }
     });
+  },
+
+  /**
+   * Solicitar recuperación de contraseña por DNI o correo
+   * @param {string} identificador - DNI o Correo
+   */
+  async solicitarRecuperacionPassword(identificador) {
+    return request('/auth/recuperar-password', {
+      method: 'POST',
+      body: JSON.stringify({ identificador })
+    });
+  },
+
+  /**
+   * Restablecer contraseña utilizando el token firmado
+   * @param {object} payload - { token, nueva_password, codigo_totp }
+   */
+  async restablecerPassword({ token, nueva_password, codigo_totp }) {
+    return request('/auth/restablecer-password', {
+      method: 'POST',
+      body: JSON.stringify({
+        token,
+        nueva_password,
+        codigo_totp: codigo_totp || null
+      })
+    });
   }
 };

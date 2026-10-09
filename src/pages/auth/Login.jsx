@@ -180,9 +180,9 @@ export default function Login() {
           </form>
 
           <div className="text-center mt-4">
-            <a href="#" onClick={(e) => e.preventDefault()} className="helper-link">
+            <Link to="/auth/recuperar-password" className="helper-link">
               ¿Olvidaste tu contraseña?
-            </a>
+            </Link>
           </div>
 
           <div className="public-link">

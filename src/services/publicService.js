@@ -81,5 +81,19 @@ export const publicService = {
       body: JSON.stringify(datos)
     });
     return res.data;
+  },
+
+  /**
+   * Cancelar un pre-registro web no pagado
+   */
+  async cancelarPedido(codigo, documentoRemitente) {
+    const res = await request(`/publico/pedidos/${encodeURIComponent(codigo)}/cancelar`, {
+      method: 'POST',
+      body: JSON.stringify({
+        numero_documento_remitente: documentoRemitente,
+        motivo: "Cancelación solicitada por el cliente mediante el portal web."
+      })
+    });
+    return res.data;
   }
 };
